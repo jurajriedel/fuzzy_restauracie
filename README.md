@@ -1,7 +1,9 @@
-## Vložit príkazy do konzoly po jednom a stlačit enter
+## Je potrebne mat Python 3.12
+
 ## Spustenie projektu (Windows)
-git clone https://github.com/jurajriedel/fuzzy_restauracie.git
-cd fuzzy_restauracie
+## Stiahnut subory "Kliknut na code" + "download ZIP"
+## Rozbalit na plochu
+## V príkazovom riadku pomocou cd Desktop|
 ## Inštalácia potrebných knižníc
 pip install -r requirements.txt
 ## Vygenerovanie dát a databázy
