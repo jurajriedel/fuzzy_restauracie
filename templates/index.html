@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="sk">
+<head>
+  <meta charset="utf-8"/>
+  <title>Fuzzy vyhľadávanie reštaurácií</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      background: #f3f4f6;
+      color: #111827;
+    }
+    .stranka {
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+    .karta-hlavna {
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+      max-width: 1000px;
+      width: 100%;
+      padding: 24px 28px 28px;
+    }
+    h1 {
+      margin-top: 0;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo-bodka {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: #3b82f6;
+      display: inline-block;
+    }
+    .podnadpis {
+      margin-top: 4px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      color: #6b7280;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 2fr);
+      gap: 20px;
+    }
+    .panel {
+      border-radius: 12px;
+      background: #f9fafb;
+      padding: 16px 18px;
+      border: 1px solid #e5e7eb;
+    }
+    .panel h2 {
+      margin: 0 0 10px 0;
+      font-size: 16px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: #374151;
+    }
+    input[type="text"],
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 7px 8px;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      font-size: 13px;
+      outline: none;
+      background: #ffffff;
+    }
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    select:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.2);
+    }
+    .pole { margin-bottom: 10px; }
+    .pole-inline {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .poznamka {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 10px;
+    }
+    .dolezitost-label { font-size: 13px; font-weight: 500; }
+    .dolezitost-input { display: flex; align-items: center; gap: 6px; }
+    .dolezitost-input input[type="number"] { width: 70px; text-align: center; }
+    .range-text { font-size: 11px; color: #9ca3af; }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; font-size: 11px; color: #6b7280; }
+    .chip { padding: 2px 8px; border-radius: 999px; border: 1px solid #e5e7eb; background: #f9fafb; }
+    .akcie {
+      margin-top: 16px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .btn-prim {
+      padding: 8px 18px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+    }
+    .btn-sec {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      background: #ffffff;
+      font-size: 11px;
+      color: #6b7280;
+      cursor: pointer;
+    }
+    #vysledky { margin-top: 22px; }
+    #vysledky h2 { font-size: 16px; margin-bottom: 8px; }
+    .info { font-size: 12px; color: #6b7280; margin-bottom: 6px; }
+    .zoznam-vysledkov { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+    .karta-vysledok {
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      padding: 10px 12px;
+      font-size: 13px;
+    }
+    .radek-hlavicka { display: flex; justify-content: space-between; gap: 8px; }
+    .nazov-rest { font-weight: 600; }
+    .skore {
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+    .meta { font-size: 12px; color: #4b5563; margin-top: 3px; }
+    .badge {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: #f3f4f6;
+      color: #6b7280;
+      margin-right: 4px;
+    }
+
+    /* panel s grafom */
+    .graf-panel {
+      margin-top: 18px;
+      padding-top: 12px;
+      border-top: 1px solid #e5e7eb;
+    }
+    .graf-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .graf-header h3 {
+      margin: 0;
+      font-size: 15px;
+    }
+    #canvas-wrapper {
+      overflow-x: auto;
+    }
+    #graf {
+      width: 100%;
+      max-width: 900px;
+      height: 320px;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+    }
+
+    @media (max-width: 800px) {
+      .karta-hlavna { padding: 18px 16px 20px; }
+      .grid { grid-template-columns: minmax(0, 1fr); }
+      .akcie { flex-direction: column; align-items: stretch; }
+      .btn-prim, .btn-sec { width: 100%; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="stranka">
+    <div class="karta-hlavna">
+      <h1><span class="logo-bodka"></span>Fuzzy vyhľadávanie reštaurácií</h1>
+      <div class="podnadpis">
+        Nastav si približné preferencie a dôležitosť kritérií. Potom si vieš zobraziť aj graf skóre TOP reštaurácií.
+      </div>
+
+      <div class="grid">
+        <!-- Preferencie -->
+        <div class="panel">
+          <h2>Preferencie</h2>
+
+          <div class="pole">
+            <label for="kuchyna">Typ kuchyne (nepovinné)</label>
+            <input id="kuchyna" type="text" placeholder="napr. slovenska, talianska, burger, veganska…">
+            <div class="chip-row">
+              <div class="chip">slovenska</div>
+              <div class="chip">talianska</div>
+              <div class="chip">burger</div>
+              <div class="chip">veganska</div>
+              <div class="chip">indicka</div>
+            </div>
+          </div>
+
+          <div class="pole">
+            <label for="cena_pref">Cenová úroveň</label>
+            <select id="cena_pref">
+              <option value="lacna">lacnejšia (lacna)</option>
+              <option value="stredna" selected>stredná (stredna)</option>
+              <option value="draha">drahšia (draha)</option>
+            </select>
+          </div>
+
+          <div class="pole">
+            <label for="hodnotenie_pref">Hodnotenie</label>
+            <select id="hodnotenie_pref">
+              <option value="zle">stačí základ (zle)</option>
+              <option value="priemerne">priemer (priemerne)</option>
+              <option value="vyborne" selected>chcem top hodnotenie (vyborne)</option>
+            </select>
+          </div>
+
+          <div class="pole">
+            <label for="popularita_pref">Obľúbenosť</label>
+            <select id="popularita_pref">
+              <option value="neznamy">nepoznaná / nezáleží (neznamy)</option>
+              <option value="znamy" selected>bežná obľúbenosť (znamy)</option>
+              <option value="top">chcem vychýrené miesto (top)</option>
+            </select>
+          </div>
+
+          <div class="pole">
+            <label for="vzdialenost_pref">Vzdialenosť</label>
+            <select id="vzdialenost_pref">
+              <option value="blizko" selected>čo najbližšie (blizko)</option>
+              <option value="stredne">nevadí trochu ďalej (stredne)</option>
+              <option value="daleko">môže byť aj ďalej (daleko)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Dolezitost kriterii -->
+        <div class="panel">
+          <h2>Dôležitosť kritérií</h2>
+          <div class="poznamka">
+            Hodnota <b>1</b> = menej dôležité, <b>5</b> = veľmi dôležité. Skóre sa automaticky normalizujú.
+          </div>
+
+          <div class="pole-inline">
+            <div class="dolezitost-label">Cena</div>
+            <div class="dolezitost-input">
+              <input id="dolezitost_cena" type="number" min="1" max="5" step="1" value="3">
+              <span class="range-text">1–5</span>
+            </div>
+          </div>
+
+          <div class="pole-inline">
+            <div class="dolezitost-label">Hodnotenie</div>
+            <div class="dolezitost-input">
+              <input id="dolezitost_hodnotenie" type="number" min="1" max="5" step="1" value="4">
+              <span class="range-text">1–5</span>
+            </div>
+          </div>
+
+          <div class="pole-inline">
+            <div class="dolezitost-label">Obľúbenosť</div>
+            <div class="dolezitost-input">
+              <input id="dolezitost_popularita" type="number" min="1" max="5" step="1" value="3">
+              <span class="range-text">1–5</span>
+            </div>
+          </div>
+
+          <div class="pole-inline">
+            <div class="dolezitost-label">Vzdialenosť</div>
+            <div class="dolezitost-input">
+              <input id="dolezitost_vzdialenost" type="number" min="1" max="5" step="1" value="4">
+              <span class="range-text">1–5</span>
+            </div>
+          </div>
+
+          <div class="pole-inline">
+            <div class="dolezitost-label">Typ kuchyne</div>
+            <div class="dolezitost-input">
+              <input id="dolezitost_kuchyna" type="number" min="1" max="5" step="1" value="2">
+              <span class="range-text">1–5</span>
+            </div>
+          </div>
+
+          <div class="pole-inline">
+            <div class="dolezitost-label">Parkovanie</div>
+            <div class="dolezitost-input">
+              <input id="dolezitost_parkovanie" type="number" min="1" max="5" step="1" value="3">
+              <span class="range-text">1–5</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="akcie">
+        <button class="btn-prim" onclick="hladat()">🔍 Nájsť reštaurácie</button>
+        <button class="btn-sec" type="button" onclick="resetForm()">Obnoviť nastavenia</button>
+      </div>
+
+      <div id="vysledky"></div>
+
+      <!-- panel s grafom -->
+      <div class="graf-panel">
+        <div class="graf-header">
+          <h3>Graf skóre TOP reštaurácií</h3>
+          <button class="btn-sec" type="button" onclick="zobrazGraf()">Zobraziť graf (TOP 10)</button>
+        </div>
+        <div class="info" id="graf-info">
+          Najskôr spusti vyhľadávanie. Potom môžeš zobraziť stĺpcový graf skóre prvých 10 reštaurácií.
+        </div>
+        <div id="canvas-wrapper">
+          <canvas id="graf"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let posledneVysledky = [];
+
+    function resetForm() {
+      document.getElementById('kuchyna').value = '';
+      document.getElementById('cena_pref').value = 'stredna';
+      document.getElementById('hodnotenie_pref').value = 'vyborne';
+      document.getElementById('popularita_pref').value = 'znamy';
+      document.getElementById('vzdialenost_pref').value = 'blizko';
+
+      document.getElementById('dolezitost_cena').value = 3;
+      document.getElementById('dolezitost_hodnotenie').value = 4;
+      document.getElementById('dolezitost_popularita').value = 3;
+      document.getElementById('dolezitost_vzdialenost').value = 4;
+      document.getElementById('dolezitost_kuchyna').value = 2;
+      document.getElementById('dolezitost_parkovanie').value = 3;
+
+      document.getElementById('vysledky').innerHTML = '';
+      posledneVysledky = [];
+      vycistiGraf();
+      document.getElementById('graf-info').textContent =
+        "Najskôr spusti vyhľadávanie. Potom môžeš zobraziť stĺpcový graf skóre prvých 10 reštaurácií.";
+    }
+
+    async function hladat() {
+      const telo = {
+        kuchyna: document.getElementById('kuchyna').value,
+        cena_preferencia: document.getElementById('cena_pref').value,
+        hodnotenie_preferencia: document.getElementById('hodnotenie_pref').value,
+        popularita_preferencia: document.getElementById('popularita_pref').value,
+        vzdialenost_preferencia: document.getElementById('vzdialenost_pref').value,
+        vaha_cena: parseFloat(document.getElementById('dolezitost_cena').value || 1),
+        vaha_hodnotenie: parseFloat(document.getElementById('dolezitost_hodnotenie').value || 1),
+        vaha_popularita: parseFloat(document.getElementById('dolezitost_popularita').value || 1),
+        vaha_vzdialenost: parseFloat(document.getElementById('dolezitost_vzdialenost').value || 1),
+        vaha_kuchyna: parseFloat(document.getElementById('dolezitost_kuchyna').value || 1),
+        vaha_parkovanie: parseFloat(document.getElementById('dolezitost_parkovanie').value || 1),
+      };
+
+      const res = await fetch('/api/hladat', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(telo)
+      });
+
+      const arr = await res.json();
+      posledneVysledky = arr; // ulozime pre graf
+
+      const kontajner = document.getElementById('vysledky');
+
+      if (!arr.length) {
+        kontajner.innerHTML = '<h2>Výsledky</h2><div class="info">Nenašli sa žiadne vhodné reštaurácie pre zadané nastavenia.</div>';
+        vycistiGraf();
+        document.getElementById('graf-info').textContent =
+          "Žiadne výsledky – nie je čo zobraziť v grafe.";
+        return;
+      }
+
+      kontajner.innerHTML = `
+        <h2>Výsledky (${arr.length})</h2>
+        <div class="info">Zobrazené sú najlepšie zhodujúce sa reštaurácie podľa tvojich nastavení.</div>
+        <div class="zoznam-vysledkov"></div>
+      `;
+      const zoznam = kontajner.querySelector('.zoznam-vysledkov');
+
+      arr.forEach(r => {
+        const el = document.createElement('div');
+        el.className = 'karta-vysledok';
+        el.innerHTML = `
+          <div class="radek-hlavicka">
+            <div class="nazov-rest">${r.nazov}</div>
+            <div class="skore">skóre: ${r.skore.toFixed(3)}</div>
+          </div>
+          <div class="meta">
+            <span class="badge">${r.kuchyna || 'neuvedená kuchyňa'}</span>
+            cena ~ ${r.cena} € • rating ${r.hodnotenie} / 5 • vzdialenosť ${r.vzdialenost} km • obľúbenosť ${r.popularita} % • parkovanie: ${r.parkovanie ? 'áno' : 'nie'}
+          </div>
+        `;
+        zoznam.appendChild(el);
+      });
+
+      document.getElementById('graf-info').textContent =
+        "Klikni na „Zobraziť graf (TOP 10)“ pre náhľad skóre podľa aktuálnych výsledkov.";
+      vycistiGraf();
+    }
+
+    function vycistiGraf() {
+      const canvas = document.getElementById('graf');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function zobrazGraf() {
+      if (!posledneVysledky || posledneVysledky.length === 0) {
+        document.getElementById('graf-info').textContent =
+          "Najskôr spusti vyhľadávanie, až potom je možné vykresliť graf.";
+        return;
+      }
+
+      const canvas = document.getElementById('graf');
+      const ctx = canvas.getContext('2d');
+
+      // nastavime rozmery canvasa dynamicky
+      const sirka = canvas.clientWidth || 800;
+      const vyska = canvas.clientHeight || 320;
+      canvas.width = sirka;
+      canvas.height = vyska;
+
+      ctx.clearRect(0, 0, sirka, vyska);
+
+      const topN = posledneVysledky.slice(0, 10);
+      const marginLeft = 150;
+      const marginRight = 20;
+      const marginTop = 20;
+      const marginBottom = 20;
+      const barSpace = (vyska - marginTop - marginBottom) / topN.length;
+      const maxScore = Math.max(...topN.map(r => r.skore));
+
+      ctx.font = "12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial";
+      ctx.fillStyle = "#6b7280";
+      ctx.textBaseline = "middle";
+
+      topN.forEach((r, index) => {
+        const y = marginTop + index * barSpace + barSpace / 2;
+        const podiel = r.skore / maxScore;
+        const barWidth = podiel * (sirka - marginLeft - marginRight);
+
+        // nazov reštaurácie
+        ctx.fillStyle = "#111827";
+        const nazov = r.nazov.length > 22 ? r.nazov.slice(0, 22) + "…" : r.nazov;
+        ctx.fillText(nazov, 10, y);
+
+        // samotný bar
+        const xStart = marginLeft;
+        const barHeight = Math.min(20, barSpace - 6);
+        const yBar = y - barHeight / 2;
+
+        ctx.fillStyle = "#bfdbfe";
+        ctx.fillRect(xStart, yBar, barWidth, barHeight);
+
+        // orámovanie
+        ctx.strokeStyle = "#3b82f6";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(xStart, yBar, barWidth, barHeight);
+
+        // hodnota skóre
+        ctx.fillStyle = "#1d4ed8";
+        const scoreText = r.skore.toFixed(3);
+        ctx.fillText(scoreText, xStart + barWidth + 5, y);
+      });
+
+      // os X – popisek
+      ctx.fillStyle = "#6b7280";
+      ctx.textAlign = "center";
+      ctx.fillText("skóre (0–1)", (marginLeft + sirka - marginRight) / 2, vyska - 5);
+      ctx.textAlign = "start";
+
+      document.getElementById('graf-info').textContent =
+        "Zobrazený je stĺpcový graf skóre TOP 10 reštaurácií podľa aktuálneho vyhľadávania.";
+    }
+  </script>
+</body>
+</html>
