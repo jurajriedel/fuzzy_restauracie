@@ -1,4 +1,4 @@
-## Vložit príkazy do konzoly po jednom a stalčit enter
+## Vložit príkazy do konzoly po jednom a stlačit enter
 ## Spustenie projektu (Windows)
 git clone https://github.com/jurajriedel/fuzzy_restauracie.git
 cd fuzzy_restauracie
