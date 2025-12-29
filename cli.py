@@ -1,6 +1,6 @@
 # cli.py
 import sqlite3
-from fuzzy_engine import compute_score, normalize_weights
+from fuzzy_engine import vypocitaj_skore, normalizuj_vahy
 
 DB = "restaurants.db"
 
@@ -10,49 +10,70 @@ def fetch_all():
     cur.execute("SELECT name, price, rating, popularity, distance, cuisine FROM restaurants")
     rows = cur.fetchall()
     conn.close()
-    return [{"name": r[0], "price": r[1], "rating": r[2], "popularity": r[3], "distance": r[4], "cuisine": r[5]} for r in rows]
+    return [
+        {
+            "nazov": r[0],
+            "cena": r[1],
+            "hodnotenie": r[2],
+            "popularita": r[3],
+            "vzdialenost": r[4],
+            "kuchyna": r[5],
+            "parkovanie": 0
+        }
+        for r in rows
+    ]
 
 def input_prefs():
-    print("=== Fuzzy Restaurant CLI ===")
-    cuisine = input("Preferovaná kuchyňa (zostaň prázdny pre ignorovanie): ").strip()
-    price_pref = input("Cena preferencia (cheap/medium/expensive) [medium]: ").strip() or "medium"
-    rating_pref = input("Hodnotenie preferencia (bad/average/excellent) [excellent]: ").strip() or "excellent"
-    popularity_pref = input("Popularita preferencia (unknown/known/top) [known]: ").strip() or "known"
-    distance_pref = input("Vzdialenosť preferencia (close/medium/far) [close]: ").strip() or "close"
+    print("=== Fuzzy vyhľadávanie reštaurácií (CLI) ===")
 
-    weights = {}
+    kuchyna = input("Preferovaná kuchyňa (nechaj prázdne ak nezáleží): ").strip()
+
+    cena_pref = input("Cenová úroveň (lacna/stredna/draha) [stredna]: ").strip() or "stredna"
+    hodnotenie_pref = input("Hodnotenie (zle/priemerne/vyborne) [vyborne]: ").strip() or "vyborne"
+    popularita_pref = input("Popularita (neznamy/znamy/top) [znamy]: ").strip() or "znamy"
+    vzdialenost_pref = input("Vzdialenosť (blizko/stredne/daleko) [blizko]: ").strip() or "blizko"
+
+    vahy = {}
     try:
-        weights["price"] = float(input("Váha ceny (napr. 1-5) [1]: ") or "1")
-        weights["rating"] = float(input("Váha hodnotenia [1]: ") or "1")
-        weights["popularity"] = float(input("Váha popularity [1]: ") or "1")
-        weights["distance"] = float(input("Váha vzdialenosti [1]: ") or "1")
-        weights["cuisine"] = float(input("Váha kuchyne [1]: ") or "1")
+        vahy["cena"] = float(input("Dôležitosť ceny (1–5) [1]: ") or "1")
+        vahy["hodnotenie"] = float(input("Dôležitosť hodnotenia [1]: ") or "1")
+        vahy["popularita"] = float(input("Dôležitosť popularity [1]: ") or "1")
+        vahy["vzdialenost"] = float(input("Dôležitosť vzdialenosti [1]: ") or "1")
+        vahy["kuchyna"] = float(input("Dôležitosť kuchyne [1]: ") or "1")
+        vahy["parkovanie"] = 0.0
     except:
-        print("Neplatný vstup váh, použijem default 1 pre všetky.")
-        weights = {k:1 for k in ["price","rating","popularity","distance","cuisine"]}
+        print("Neplatný vstup – nastavujem všetky váhy na 1.")
+        vahy = {k: 1.0 for k in ["cena","hodnotenie","popularita","vzdialenost","kuchyna","parkovanie"]}
 
-    prefs = {
-        "cuisine": cuisine,
-        "price_pref": price_pref,
-        "rating_pref": rating_pref,
-        "popularity_pref": popularity_pref,
-        "distance_pref": distance_pref
+    preferencie = {
+        "kuchyna": kuchyna,
+        "cena_preferencia": cena_pref,
+        "hodnotenie_preferencia": hodnotenie_pref,
+        "popularita_preferencia": popularita_pref,
+        "vzdialenost_preferencia": vzdialenost_pref,
     }
-    weights = normalize_weights(weights)
-    return prefs, weights
+
+    vahy = normalizuj_vahy(vahy)
+    return preferencie, vahy
 
 def main():
-    prefs, weights = input_prefs()
-    rows = fetch_all()
-    scored = []
-    for r in rows:
-        sc = compute_score(r, prefs, weights)
-        if sc >= 0.2:
-            scored.append((r["name"], sc))
-    scored.sort(key=lambda x: x[1], reverse=True)
+    preferencie, vahy = input_prefs()
+    zaznamy = fetch_all()
+    vysledky = []
+
+    for r in zaznamy:
+        sk = vypocitaj_skore(r, preferencie, vahy)
+        if sk >= 0.2:
+            vysledky.append((r["nazov"], sk))
+
+    vysledky.sort(key=lambda x: x[1], reverse=True)
+
     print("\n=== Výsledky ===")
-    for name, s in scored[:50]:
-        print(f"{name:30} → {s:.3f}")
+    if not vysledky:
+        print("Nenašli sa žiadne vhodné reštaurácie.")
+    else:
+        for nazov, sk in vysledky[:50]:
+            print(f"{nazov:35} → {sk:.3f}")
 
 if __name__ == "__main__":
     main()
